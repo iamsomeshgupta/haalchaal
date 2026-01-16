@@ -1,8 +1,7 @@
 "use client";
-import { useContext,useState } from "react";
+import { useState } from "react";
 import api from "../api/axios";
-import { jwtDecode } from "jwt-decode";
-import {AuthContext} from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import { FormEvent } from "react";
 // import { useRouter } from "next/navigation";required for redirection
 
@@ -13,24 +12,31 @@ export default function Login(){
     const [username,setUsername]=useState("");
     const[islogin,setIslogin]=useState(true);
    
-    const {setUser}=useContext(AuthContext);
+    const {setUser}=useAuth();
     
     const handleSubmit=async(e:FormEvent<HTMLFormElement>):Promise<void>=>{
         e.preventDefault();
         setError("");
         try{
             const endpoint=islogin?"/auth/login":"/auth/register";
-            const res=await api.post(endpoint,{
-                email,password
-            });
-            const {token}=res.data;
-            localStorage.setItem("token",token);
-            const payload=jwtDecode(token);
-            setUser(payload);
+            const payload=islogin
+                ? {email,password}
+                : {username,email,password};
+
+            const res=await api.post(endpoint,payload);
+            const {token,user}=res.data;
+
+            if(token)
+                localStorage.setItem("token",token);
+
+            if(user)
+                setUser(user);
+
             //router.push("/projects");
         }
         catch(err:any){
-            setError(err.response?.data?.msg||"Auth failed");
+            const message=err.response?.data?.message||"Auth failed";
+            setError(message);
         }
     };
     return (

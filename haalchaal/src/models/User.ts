@@ -16,7 +16,10 @@ const UserSchema=new Schema({
         required:true,
         select:false,
     },
-},{
-    timestamps:true
+},
+{
+    timestamps:true,
 });
-export default models.User||mongoose.model("User,UserSchema");
+
+// Reuse existing model in dev to avoid model overwrite errors
+export default models.User || mongoose.model("User", UserSchema);
