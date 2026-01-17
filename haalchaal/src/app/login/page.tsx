@@ -3,7 +3,6 @@ import { useState } from "react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { FormEvent } from "react";
-// import { useRouter } from "next/navigation";required for redirection
 
 export default function Login(){
     const [email,setEmail]=useState("");
@@ -38,7 +37,7 @@ export default function Login(){
             const message=err.response?.data?.message||"Auth failed";
             setError(message);
         }
-    };
+};
     return (
         <div className="flex h-screen w-full items-center justify-center bg-gray-50">
             <div className="border border-gray-300 rounded-xl p-8 shadow-lg bg-white w-full max-w-md">
