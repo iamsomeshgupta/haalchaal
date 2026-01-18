@@ -15,5 +15,9 @@ const MessageSchema=new Schema({
         required:true,
         trim:true,
     },
+    seen:{
+        type:Boolean,
+        default:false,
+    }
 },{timestamps:true});
 export default models.Message||mongoose.model("Message",MessageSchema);

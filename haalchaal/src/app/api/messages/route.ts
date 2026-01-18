@@ -21,11 +21,29 @@ export async function POST(req:Request) {
                 {status:400}
             );
         }
+        await Message.updateMany(
+  {
+    sender: receiverId,
+    receiver: decoded.id,
+    seen: false,
+  },
+  { seen: true }
+);
+
+// after updateMany
+const io = (global as any).io;
+if (io) {
+  io.to(receiverId).emit("messagesSeen", {
+    by: decoded.id,
+  });
+}
+
         const message=await Message.create({
             sender:decoded.id,
             receiver:receiverId,
             content,
         });
+        
         return NextResponse.json({message});
     }
     catch(error){

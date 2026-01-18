@@ -1,6 +1,9 @@
 "use client";
 import { useEffect,useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { io } from "socket.io-client";
+const socket = io();
+
 interface User{
     _id:string;
     username:string;
@@ -18,7 +21,10 @@ export default function ChatPage(){
     const [selectedUser,setSelectedUser]=useState<User|null>(null);
     const [messages,setMessages]=useState<Message[]>([]);
     const [users,setUsers]=useState<User[]>([]);
+    const[isTyping,setIsTyping]=useState(false);
     const [newMessage,setnewMessage]=useState("");
+    const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+
 
     async function sendMessage() {
         if(!newMessage.trim()||!selectedUser)
@@ -56,6 +62,26 @@ export default function ChatPage(){
         }
         fetchUsers();
     },[]);
+    useEffect(() => {
+  if (!socket) return;
+
+  socket.on("messagesSeen", ({ by }) => {
+    if (by === selectedUser?._id) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.sender === user?.id
+            ? { ...m, seen: true }
+            : m
+        )
+      );
+    }
+  });
+
+  return () => {
+    socket.off("messagesSeen");
+  };
+}, [selectedUser]);
+
     useEffect(()=>{
         if(!selectedUser)
             return;
@@ -73,11 +99,38 @@ export default function ChatPage(){
         }
         fetchMessages();
     },[selectedUser]);
+useEffect(() => {
+  socket.on("typing", ({ senderId }) => {
+    if (senderId === selectedUser?._id) {
+      setIsTyping(true);
+    }
+  });
+
+  socket.on("stopTyping", ({ senderId }) => {
+    if (senderId === selectedUser?._id) {
+      setIsTyping(false);
+    }
+  });
+
+  return () => {
+    socket.off("typing");
+    socket.off("stopTyping");
+  };
+}, [selectedUser]);
+
+useEffect(() => {
+  socket.on("onlineUsers", (users) => {
+    setOnlineUsers(users);
+  });
+
+  return () => socket.off("onlineUsers");
+}, []);
+
     return(
         <div>
             <h2>Chats</h2>
             {users.map((u:any)=>(
-                <div key={u._id} onClick={()=>setSelectedUser(u)} style={{cursor:"pointer"}}>{u.username}</div>
+                <div key={u._id} onClick={()=>setSelectedUser(u)} style={{cursor:"pointer"}}>{u.username}{onlineUsers.includes(u._id) ? " 🟢" : " ⚫"}</div>
             ))}
             {selectedUser&&(
                 <div>
@@ -93,7 +146,17 @@ export default function ChatPage(){
 }
 {selectedUser&&(
     <div>
-        <input value={newMessage} onChange={(e)=>setnewMessage(e.target.value)} placeholder="type a message..."></input>
+        {isTyping && <p>{selectedUser.username} is typing...</p>}
+
+        <input value={newMessage} onChange={(e)=>{setnewMessage(e.target.value);   socket.emit("typing", {
+      receiverId: selectedUser._id,
+      senderId: user?.id,
+    });}} onBlur={() => {
+    socket.emit("stopTyping", {
+      receiverId: selectedUser._id,
+      senderId: user?.id,
+    });
+  }} placeholder="type a message..."></input>
         <button onClick={sendMessage}>Send</button>
         </div>
 )}
